@@ -9,6 +9,8 @@ pygame.init()
 font_score = pygame.font.Font('../fonts/arial.ttf', 24)
 font_lrg = pygame.font.Font('../fonts/arial.ttf', 40)
 font_sml = pygame.font.Font('../fonts/arial.ttf', 14)
+font_tny = pygame.font.Font('../fonts/arial.ttf', 10)
+font_tnyblk = pygame.font.Font('../fonts/ariblk.ttf', 10)
 
 
 # font = pygame.font.SysFont('arial', 25)
@@ -24,14 +26,18 @@ Point = namedtuple('Point', 'x, y')
 
 # rgb colors
 WHITE = (255, 255, 255)
+GRAY1 = (172, 172, 172)
+GRAY2 = (128, 128, 128)
+GRAY3 = (64, 64, 64)
+BLACK = (0, 0, 0)
 RED1 = (200, 0, 0)
-RED2 = (180, 75, 25)
+RED2 = (255, 140, 0)
+GREEN = (124, 252, 0)
 BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
-BLACK = (0, 0, 0)
 
 BLOCK_SIZE = 20
-SPEED = 80
+SPEED = 200
 
 # rewards
 HIT_WALL = -9
@@ -48,16 +54,24 @@ class SnakeGameAI:
     snake: []
     score: int
     frame_iterations: int
+    plot_data: []
+    plot_data_raw: []
     paused: bool
+    show_plot: bool
+    show_matplot: bool
 
-    def __init__(self, w=640, h=480):
+    def __init__(self, w=1280, h=760):
         self.w = w
         self.h = h
         # init display
         self.display = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption('Snake')
         self.clock = pygame.time.Clock()
+        self.plot_surf = pygame.Surface((self.w, self.h))
+        self.plot_surf.set_alpha(100)
         self.reset()
+        self.show_plot = True
+        self.show_matplot = False
 
     def reset(self):
         # init game state
@@ -71,6 +85,8 @@ class SnakeGameAI:
         self.score = 0
         self.frame_iterations = 0
         self.paused = False
+        self.plot_data = []
+        self.plot_data_raw = []
         self._place_food()
 
     def _place_food(self):
@@ -80,7 +96,7 @@ class SnakeGameAI:
         if self.food in self.snake:
             self._place_food()
 
-    def read_input(self) -> bool:
+    def read_input(self):
         # 0. collect user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -89,9 +105,13 @@ class SnakeGameAI:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_PAUSE:
                     self.paused = not self.paused
+                if event.key == pygame.K_F1:
+                    self.show_plot = not self.show_plot
+                if event.key == pygame.K_F2:
+                    self.show_matplot = not self.show_matplot
         if self.paused:
             self._update_ui()
-        return self.paused
+        return self.paused, self.show_plot, self.show_matplot
 
     def play_step(self, action):
         # 1. Start counting frame iterations
@@ -135,9 +155,49 @@ class SnakeGameAI:
 
         return False
 
+    def update_plot_data(self, scores: []):
+        self.plot_data_raw = scores
+        self.plot_data = scores[-int(self.w / 2):]
+
+    def calc_high_score(self) -> (int, int):
+        hs = 0
+        idx = 0
+        i = 0
+        for score in self.plot_data:
+            if score >= hs:
+                hs = score
+                idx = i
+            i += 1
+        return idx, hs
+
     def _update_ui(self):
+        # Clear screen
         self.display.fill(BLACK)
 
+        # Show Plot
+        if self.show_plot:
+            self.plot_surf.fill(BLACK)
+            hsi, hs = self.calc_high_score()
+            high_score = font_tnyblk.render(f'{hs}', True, WHITE)
+            iterations = font_tny.render(f'{hsi}/{len(self.plot_data_raw)}', True, WHITE)
+            x = 0
+            for score in self.plot_data:
+                y = self.h - ((score * 2) + 2)
+                if score > 0:
+                    pygame.draw.line(self.plot_surf, GRAY1, (x, y), (x, self.h))
+                    pygame.draw.line(self.plot_surf, GRAY1, (x + 1, y), (x + 1, self.h))
+                else:
+                    pygame.draw.line(self.plot_surf, GRAY3, (x, self.h - 4), (x, self.h))
+                    pygame.draw.line(self.plot_surf, GRAY3, (x + 1, self.h - 4), (x + 1, self.h))
+                x += 2
+
+            if hs > 0:
+                self._place_text(self.plot_surf, Point(hsi * 2, (self.h - ((hs * 2) + 2)) - 16), high_score)
+                self._place_text(self.plot_surf, Point(hsi * 2, (self.h - ((hs * 2) + 2)) - 8), iterations)
+
+            self.display.blit(self.plot_surf, [0, 0])
+
+        # Draw snake
         for pt in self.snake:
             if self.snake.index(pt) == 0:
                 pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
@@ -147,12 +207,15 @@ class SnakeGameAI:
                 pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
                 pygame.draw.rect(self.display, BLUE2, pygame.Rect(pt.x + 4, pt.y + 4, BLOCK_SIZE - 8, BLOCK_SIZE - 8))
 
+        # Draw food
         pygame.draw.rect(self.display, RED1, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
         pygame.draw.rect(self.display, RED2, pygame.Rect(self.food.x + 4, self.food.y + 4, BLOCK_SIZE - 9, BLOCK_SIZE - 9))
 
+        # Draw score
         score = font_score.render("Score: " + str(self.score), True, WHITE)
         self.display.blit(score, [2, 0])
 
+        # Draw paused text
         if self.paused:
             above = Point(self.w / 2, (self.h / 2) - 15)
             paused = font_lrg.render("PAUSED", True, WHITE)
@@ -164,11 +227,12 @@ class SnakeGameAI:
 
         pygame.display.flip()
 
-    def _place_text(self, position: Point, text):
+    @staticmethod
+    def _place_text(surf: pygame.Surface, position: Point, text):
         text_size = text.get_size()
         x = position.x - text_size[0] / 2
         y = position.y - text_size[1] / 2
-        self.display.blit(text, [x, y])
+        surf.blit(text, [x, y])
 
     def _move(self, action):
         # [straight, right, left]
