@@ -37,7 +37,6 @@ BLUE1 = (0, 0, 255)
 BLUE2 = (0, 100, 255)
 
 BLOCK_SIZE = 20
-SPEED = 200
 
 # rewards
 HIT_WALL = -9
@@ -59,10 +58,12 @@ class SnakeGameAI:
     paused: bool
     show_plot: bool
     show_matplot: bool
+    game_speed: int
 
     def __init__(self, w=1280, h=760):
         self.w = w
         self.h = h
+        self.game_speed = 100
         # init display
         self.display = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption('Snake')
@@ -109,6 +110,12 @@ class SnakeGameAI:
                     self.show_plot = not self.show_plot
                 if event.key == pygame.K_F2:
                     self.show_matplot = not self.show_matplot
+                if event.key == pygame.K_PAGEUP:
+                    self.game_speed = min(self.game_speed + 20, 400)
+                    print(f'GAME SPEED: {self.game_speed}')
+                if event.key == pygame.K_PAGEDOWN:
+                    self.game_speed = max(self.game_speed - 20, 20)
+                    print(f'GAME SPEED: {self.game_speed}')
         if self.paused:
             self._update_ui()
         return self.paused, self.show_plot, self.show_matplot
@@ -139,7 +146,7 @@ class SnakeGameAI:
 
         # 5. update ui and clock
         self._update_ui()
-        self.clock.tick(SPEED)
+        self.clock.tick(self.game_speed)
         # 6. return game over and score
         return reward, game_over, self.score
 
@@ -219,11 +226,11 @@ class SnakeGameAI:
         if self.paused:
             above = Point(self.w / 2, (self.h / 2) - 15)
             paused = font_lrg.render("PAUSED", True, WHITE)
-            self._place_text(above, paused)
+            self._place_text(self.display, above, paused)
 
             below = Point(self.w / 2, (self.h / 2) + 15)
             press_to_continue = font_sml.render("Press PAUSE to continue...", True, WHITE)
-            self._place_text(below, press_to_continue)
+            self._place_text(self.display, below, press_to_continue)
 
         pygame.display.flip()
 
