@@ -1,3 +1,4 @@
+import os.path
 import random
 from collections import deque
 
@@ -110,6 +111,13 @@ def train():
     total_score = 0
     record = 0
     agent = Agent()
+    #agent.model.load()
+    if os.path.exists('..//models/model_trained.pth'):
+        cp = torch.load('..//models/model_trained.pth')
+        agent.model.load_state_dict(cp['model_state_dic'])
+        agent.trainer.optimizer.load_state_dict(cp['optim_state_dic'])
+        #agent.model.train()
+        
     game = SnakeGameAI()
     while True:
         paused, show_plot, show_matplot = game.read_input()
@@ -138,7 +146,10 @@ def train():
 
             if score > record:
                 record = score
-                agent.model.save()
+                # agent.model.save()
+                torch.save({'model_state_dic': agent.model.state_dict(),
+                            'optim_state_dic': agent.trainer.optimizer.state_dict()},
+                           '..//models/model.pth')
 
             print('Game', agent.n_games, 'Score', score, 'Record:', record)
 
