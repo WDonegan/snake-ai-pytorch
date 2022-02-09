@@ -112,8 +112,8 @@ def train():
     record = 0
     agent = Agent()
     #agent.model.load()
-    if os.path.exists('..//models/model_trained.pth'):
-        cp = torch.load('..//models/model_trained.pth')
+    if os.path.exists('../models/model_trained.pth'):
+        cp = torch.load('../models/model_trained.pth')
         agent.model.load_state_dict(cp['model_state_dic'])
         agent.trainer.optimizer.load_state_dict(cp['optim_state_dic'])
         #agent.model.train()
