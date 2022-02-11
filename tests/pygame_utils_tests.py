@@ -4,59 +4,80 @@ from source2.pygame_utils import CallbackManager, KeypressCallbackManager
 from source2.pygame_utils import random_location, blit
 
 
+@pytest.fixture(scope='module')
+def tf1():  # Callback for testing purposes
+    return lambda: '#1 - This is for testing purposes only'
+
+
+@pytest.fixture(scope='module')
+def tf2():  # Callback for testing purposes
+    return lambda: '#2 - This is for testing purposes only'
+
+
 class TestCallbackManager:
     @pytest.fixture(scope='class')
-    def cbm(self) -> CallbackManager:
-        return CallbackManager()
+    def cbm_init(self) -> CallbackManager:
+        yield CallbackManager()
 
-    @staticmethod
-    def func_1():
-        return 'This is a function #1'
-
-    @staticmethod
-    def func_2():
-        return 'This is a function #2'
-
-    @staticmethod
-    def func_3():
-        return 'This is a function #3'
+    @pytest.fixture()
+    def cbm(self, cbm_init) -> CallbackManager:
+        cbm_init.clear()
+        yield cbm_init
 
     def test_default_value(self, cbm):
         assert cbm.callbacks == {}
 
-    def test_execute_empty(self, cbm):
-        assert cbm.execute() is not True
-
-    def test_add(self, cbm):
-        cbm.add('test1', self.func_1)
-        cbm.add('test2', self.func_2)
-        cbm.add('test3', self.func_3)
-        assert cbm.count == 3
-
-    def test_add_existing_fails(self, cbm):
-        cbm.add('test1', self.func_3())
-        assert cbm.count == 3
-        assert cbm['test1'] == self.func_1
-
-    def test_update(self, cbm):
-        cbm.update('test1', self.func_3)
-        assert cbm.count == 3
-        assert cbm['test1'] == self.func_3
-
-    def test_execute(self, cbm):
-        assert cbm.execute("test2")
-
-    def test_execute_all(self, cbm):
-        assert cbm.execute()
-
-    def test_remove(self, cbm):
-        cbm.remove('test1')
+    def test_add(self, cbm, tf1, tf2):
+        cbm.add('t1', tf1)
+        cbm.add('t2', tf2)
         assert cbm.count == 2
 
-    def test_remove_non_existent(self, cbm):
-        cbm.remove('abcd')
-        assert cbm.count == 2
+    def test_add_doesnt_update(self, cbm, tf1, tf2):
+        cbm.add('t1', tf1)  # Add
+        cbm.add('t1', tf2)  # Attempt Overwrite
+        assert cbm.count == 1
+        assert cbm['t1'] == tf1  # Verify NOT overridden
 
-    def test_remove_all(self, cbm):
-        cbm.remove_all()
+    def test_update(self, cbm, tf1, tf2):
+        cbm.add('t1', tf1)  # Add
+        cbm.update('t1', tf2)
+        assert cbm.count == 1
+        assert cbm['t1'] == tf2
+
+    def test_remove(self, cbm, tf1):
+        cbm.add('t1', tf1)  # Add
+        cbm.remove('t1')
         assert cbm.count == 0
+
+    def test_clear(self, cbm, tf1, tf2):
+        cbm.add('t1', tf1)  # Add
+        cbm.add('t2', tf2)  # Add
+        cbm.clear()
+        assert cbm.count == 0
+
+    def test_execute(self, cbm, tf1, tf2):
+        cbm.add('t1', tf1)  # Add
+        assert cbm.execute('t1')
+
+    def test_execute_all(self, cbm, tf1, tf2):
+        cbm.add('t1', tf1)  # Add
+        cbm.add('t2', tf2)  # Add
+        assert cbm.execute_all()
+
+    def test_execute_empty(self, cbm):
+        assert cbm.execute('t1') is not True
+        assert cbm.execute_all() is not True
+
+
+class TestKeypressCallbackManager:
+    @pytest.fixture(scope='class')
+    def kpm_init(self) -> KeypressCallbackManager:
+        yield KeypressCallbackManager()
+
+    @pytest.fixture()
+    def kpm(self, kpm_init):
+        kpm_init.clear()
+        yield kpm_init
+
+    def test_default_value(self, kpm):
+        assert kpm.key_callbacks == {}

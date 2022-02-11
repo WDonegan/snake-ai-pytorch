@@ -111,13 +111,13 @@ def train():
     total_score = 0
     record = 0
     agent = Agent()
-    #agent.model.load()
+    # agent.model.load()
     if os.path.exists('../models/model_trained.pth'):
         cp = torch.load('../models/model_trained.pth')
         agent.model.load_state_dict(cp['model_state_dic'])
         agent.trainer.optimizer.load_state_dict(cp['optim_state_dic'])
-        #agent.model.train()
-        
+        # agent.model.train()
+
     game = SnakeGameAI()
     while True:
         paused, show_plot, show_matplot = game.read_input()
