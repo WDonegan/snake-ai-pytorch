@@ -32,8 +32,11 @@ def blit(source: pg.Surface, dest: pg.Surface, p: Point, centered: bool = True):
 
 
 class CallbackManager:
-    def __init__(self):
-        self.callbacks: {str: callable} = {}
+    def __init__(self, name: str = None, function: callable = None):
+        if name is None or function is None:
+            self.callbacks: {str: callable} = {}
+        else:
+            self.callbacks: {str: callable} = {name: function}
 
     def __getitem__(self, name):
         return self.callbacks[name]
@@ -46,11 +49,16 @@ class CallbackManager:
         return len(self.callbacks)
 
     def add(self, name: str, func: callable) -> None:
+        if name is None or func is None:
+            return
         if not self.__contains__(name):
             self.callbacks.update({name: func})
 
     def update(self, name: str, func: callable) -> None:
-        self.callbacks.update({name: func})
+        if name is None or func is None:
+            return
+        if self.__contains__(name):
+            self.callbacks.update({name: func})
 
     def remove(self, name: str) -> None:
         if self.__contains__(name):
@@ -76,21 +84,53 @@ class CallbackManager:
 class KeypressCallbackManager:
     def __init__(self):
         self.key_callbacks: {int, CallbackManager} = {}
-        pass
+
+    def __getitem__(self, name):
+        return self.key_callbacks[name]
 
     def __contains__(self, key: int):
         return self.key_callbacks.keys().__contains__(key)
 
-    def _register(self, key, name, function):
-        if not self.__contains__(key):
-            self.key_callbacks.update({key: CallbackManager()})
-        self.key_callbacks[key].add(name, function)
+    @property
+    def count(self):
+        return len(self.key_callbacks)
 
-    def unregister(self):
-        pass
+    def register(self, key: int, name: str, function: callable):
+        if key is None:
+            return
+        if not self.__contains__(key):
+            self.key_callbacks.update({key: CallbackManager(name, function)})
+        else:
+            self.key_callbacks[key].add(name, function)
+
+    def register_key(self, key: int):
+        if key is None or self.__contains__(key):
+            return
+        self.key_callbacks.update({key: CallbackManager()})
+
+    def unregister_key(self, key: int):
+        if key is None:
+            return
+        if self.__contains__(key):
+            self.key_callbacks.pop(key)
+
+    def register_cbk(self, key: int, name: str, func: callable):
+        if key is None or name is None or func is None or self.__contains__(key) is False:
+            return
+        if self.key_callbacks[key].__contains__(name):
+            self.key_callbacks[key].update(name, func)
+        else:
+            self.key_callbacks[key].add(name, func)
+
+    def unregister_cbk(self, key: int, name: str):
+        if key is None or name is None:
+            return
+        if self.__contains__(key):
+            if self.key_callbacks[key].__contains__(name):
+                self.key_callbacks[key].pop(name)
 
     def clear(self):
-        pass
+        self.key_callbacks.clear()
 
     def execute_callbacks(self, key):
         pass

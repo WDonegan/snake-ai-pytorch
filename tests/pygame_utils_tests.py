@@ -32,6 +32,10 @@ class TestCallbackManager:
         cbm.add('t2', tf2)
         assert cbm.count == 2
 
+    def test_add_none(self, cbm):
+        cbm.add('', None)
+        assert cbm.count == 0
+
     def test_add_doesnt_update(self, cbm, tf1, tf2):
         cbm.add('t1', tf1)  # Add
         cbm.add('t1', tf2)  # Attempt Overwrite
@@ -43,6 +47,10 @@ class TestCallbackManager:
         cbm.update('t1', tf2)
         assert cbm.count == 1
         assert cbm['t1'] == tf2
+
+    def test_update_none(self, cbm):
+        cbm.update('', None)
+        assert cbm.count == 0
 
     def test_remove(self, cbm, tf1):
         cbm.add('t1', tf1)  # Add
@@ -81,3 +89,34 @@ class TestKeypressCallbackManager:
 
     def test_default_value(self, kpm):
         assert kpm.key_callbacks == {}
+
+    def test_register_key(self, kpm):
+        kpm.register_key(1)
+        assert kpm.count == 1
+        assert kpm[1].count == 0
+
+    def test_register_key_existing(self, kpm):
+        kpm.register_key(1)
+        kpm.register_key(1)
+        assert kpm.count == 1
+        assert kpm[1].count == 0
+
+    def test_register_key_unique(self, kpm):
+        kpm.register_key(1)
+        kpm.register_key(2)
+        assert kpm.count == 2
+        assert kpm[1].count == 0
+        assert kpm[2].count == 0
+
+    def test_register_key_none(self, kpm):
+        kpm.register_key(None)
+        assert kpm.count == 0
+
+    def test_unregister_key(self, kpm):
+        kpm.register_key(1)
+        kpm.unregister_key(1)
+        assert not kpm.__contains__(1)
+        assert kpm.count == 0
+
+    def test_register_cbk(self, kpm, tf1, tf2):
+        pass
